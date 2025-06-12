@@ -7,7 +7,7 @@ import (
 )
 
 type SeatService interface {
-	GetAllSeats() ([]model.Seat, error)
+	GetAllSeats() ([]model.Slot, error)
 	SelectSeat(code string) error
 }
 
@@ -19,7 +19,7 @@ func NewSeatService(repo repository.SeatRepository) SeatService {
 	return &seatService{repo}
 }
 
-func (s *seatService) GetAllSeats() ([]model.Seat, error) {
+func (s *seatService) GetAllSeats() ([]model.Slot, error) {
 	return s.repo.GetAll()
 }
 
