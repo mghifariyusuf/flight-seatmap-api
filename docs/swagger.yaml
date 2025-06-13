@@ -1,0 +1,86 @@
+basePath: /
+definitions:
+  controller.SeatSelectionRequest:
+    properties:
+      code:
+        type: string
+    required:
+    - code
+    type: object
+  model.Seat:
+    properties:
+      available:
+        type: boolean
+      cabin:
+        type: string
+      code:
+        type: string
+      currency:
+        type: string
+      freeOfCharge:
+        type: boolean
+      price:
+        type: number
+      rawCharacteristics:
+        type: string
+      refundIndicator:
+        type: string
+      rowNumber:
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: This is a backend API for selecting flight seats.
+  title: Flight Seat Map API
+  version: "1.0"
+paths:
+  /seats:
+    get:
+      description: Returns a list of all seat map data
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Seat'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all seats
+      tags:
+      - Seats
+  /seats/select:
+    post:
+      consumes:
+      - application/json
+      description: Select a seat by seat code
+      parameters:
+      - description: Seat Code
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/controller.SeatSelectionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Select a seat
+      tags:
+      - Seats
+swagger: "2.0"

@@ -1,0 +1,130 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "This is a backend API for selecting flight seats.",
+        "title": "Flight Seat Map API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/seats": {
+            "get": {
+                "description": "Returns a list of all seat map data",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Seats"
+                ],
+                "summary": "Get all seats",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Seat"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/seats/select": {
+            "post": {
+                "description": "Select a seat by seat code",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Seats"
+                ],
+                "summary": "Select a seat",
+                "parameters": [
+                    {
+                        "description": "Seat Code",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controller.SeatSelectionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "controller.SeatSelectionRequest": {
+            "type": "object",
+            "required": [
+                "code"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.Seat": {
+            "type": "object",
+            "properties": {
+                "available": {
+                    "type": "boolean"
+                },
+                "cabin": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "freeOfCharge": {
+                    "type": "boolean"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "rawCharacteristics": {
+                    "type": "string"
+                },
+                "refundIndicator": {
+                    "type": "string"
+                },
+                "rowNumber": {
+                    "type": "integer"
+                }
+            }
+        }
+    }
+}
