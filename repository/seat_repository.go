@@ -8,7 +8,7 @@ import (
 )
 
 type SeatRepository interface {
-	GetAll() ([]model.Slot, error)
+	GetAll() ([]model.Seat, error)
 	SelectSeat(code string) error
 }
 
@@ -20,14 +20,14 @@ func NewSeatRepository(db *gorm.DB) SeatRepository {
 	return &seatRepository{db}
 }
 
-func (r *seatRepository) GetAll() ([]model.Slot, error) {
-	var seats []model.Slot
+func (r *seatRepository) GetAll() ([]model.Seat, error) {
+	var seats []model.Seat
 	err := r.db.Find(&seats).Error
 	return seats, err
 }
 
 func (r *seatRepository) SelectSeat(code string) error {
-	res := r.db.Model(&model.Slot{}).
+	res := r.db.Model(&model.Seat{}).
 		Where("code = ? AND available = true", code).
 		Update("available", false)
 	if res.RowsAffected == 0 {

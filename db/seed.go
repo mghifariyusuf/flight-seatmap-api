@@ -3,12 +3,12 @@ package db
 import (
 	"encoding/json"
 	"flight-seatmap-api/model"
+	"fmt"
 	"os"
 	"strings"
 
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type SeatMapResponse struct {
@@ -21,34 +21,54 @@ type SeatsItineraryPart struct {
 
 type SegmentSeatMap struct {
 	PassengerSeatMaps []PassengerSeatMap `json:"passengerSeatMaps"`
+	Segment           any                `json:"segment"`
 }
 
 type PassengerSeatMap struct {
-	SeatMap SeatMap `json:"seatMap"`
+	SeatSelectionEnabledForPax bool    `json:"seatSelectionEnabledForPax"`
+	SeatMap                    SeatMap `json:"seatMap"`
+	Passenger                  any     `json:"passenger"`
 }
 
 type SeatMap struct {
-	Cabins []Cabin `json:"cabins"`
+	RowsDisabledCauses []string `json:"rowsDisabledCauses"`
+	Aircraft           string   `json:"aircraft"`
+	Cabins             []Cabin  `json:"cabins"`
 }
 
 type Cabin struct {
-	Deck     string    `json:"deck"`
-	SeatRows []SeatRow `json:"seatRows"`
+	Deck        string    `json:"deck"`
+	SeatColumns []string  `json:"seatColumns"`
+	SeatRows    []SeatRow `json:"seatRows"`
+	FirstRow    int       `json:"firstRow"`
+	LastRow     int       `json:"lastRow"`
 }
 
 type SeatRow struct {
-	RowNumber int    `json:"rowNumber"`
-	Seats     []Seat `json:"seats"`
-	Slots     []Slot `json:"slots"`
+	RowNumber int      `json:"rowNumber"`
+	SeatCodes []string `json:"seatCodes"`
+	Seats     []Seat   `json:"seats"`
 }
 
 type Seat struct {
-	Code                   string       `json:"code"`
+	SlotCharacteristics    []string     `json:"slotCharacteristics"`
+	StorefrontSlotCode     string       `json:"storefrontSlotCode"`
 	Available              bool         `json:"available"`
-	FreeOfCharge           bool         `json:"freeOfCharge"`
+	Code                   string       `json:"code"`
+	Designations           []string     `json:"designations"`
+	Entitled               bool         `json:"entitled"`
+	FeeWaived              bool         `json:"feeWaived"`
+	EntitledRuleID         string       `json:"entitledRuleId"`
+	FeeWaivedRuleID        string       `json:"feeWaivedRuleId"`
+	SeatCharacteristics    []string     `json:"seatCharacteristics"`
+	Limitations            []string     `json:"limitations"`
 	RefundIndicator        string       `json:"refundIndicator"`
-	RawSeatCharacteristics []string     `json:"rawSeatCharacteristics"`
+	FreeOfCharge           bool         `json:"freeOfCharge"`
 	Prices                 SeatPriceSet `json:"prices"`
+	Taxes                  SeatPriceSet `json:"taxes"`
+	Total                  SeatPriceSet `json:"total"`
+	OriginallySelected     bool         `json:"originallySelected"`
+	RawSeatCharacteristics []string     `json:"rawSeatCharacteristics"`
 }
 
 type SeatPriceSet struct {
@@ -60,18 +80,8 @@ type SeatPrice struct {
 	Currency string  `json:"currency"`
 }
 
-type Slot struct {
-	SlotCharacteristics []string `json:"slotCharacteristics"`
-	StorefrontSlotCode  string   `json:"storefrontSlotCode"`
-	Available           bool     `json:"available"`
-	Entitled            bool     `json:"entitled"`
-	FeeWaived           bool     `json:"feeWaived"`
-	FreeOfCharge        bool     `json:"freeOfCharge"`
-	OriginallySelected  bool     `json:"originallySelected"`
-}
-
 func SeedFromJSON(path string, db *gorm.DB) error {
-	if err := db.AutoMigrate(&model.Slot{}); err != nil {
+	if err := db.AutoMigrate(&model.Seat{}); err != nil {
 		return err
 	}
 
@@ -91,78 +101,52 @@ func SeedFromJSON(path string, db *gorm.DB) error {
 				for _, cabin := range pax.SeatMap.Cabins {
 					for _, row := range cabin.SeatRows {
 						for _, seat := range row.Seats {
-							code := seat.Code
-							slotType := "seat"
-							if code == "" {
-								code = "BLANK"
-								slotType = "blank"
+							prices := ""
+							for _, alt := range seat.Prices.Alternatives {
+								for _, price := range alt {
+									prices += price.Currency + ":" + fmt.Sprintf("%.2f", price.Amount) + ","
+								}
 							}
 
-							price := 0.0
-							currency := ""
-							if len(seat.Prices.Alternatives) > 0 && len(seat.Prices.Alternatives[0]) > 0 {
-								price = seat.Prices.Alternatives[0][0].Amount
-								currency = seat.Prices.Alternatives[0][0].Currency
+							taxes := ""
+							for _, alt := range seat.Taxes.Alternatives {
+								for _, taxe := range alt {
+									taxes += taxe.Currency + ":" + fmt.Sprintf("%.2f", taxe.Amount) + ","
+								}
 							}
 
-							slot := model.Slot{
-								Code:                code,
-								RowNumber:           row.RowNumber,
-								Cabin:               cabin.Deck,
-								Available:           seat.Available,
-								FreeOfCharge:        seat.FreeOfCharge,
-								FeeWaived:           false,
-								Entitled:            false,
-								OriginallySelected:  false,
-								Type:                slotType,
-								SlotCharacteristics: "",
-								Currency:            currency,
-								Price:               price,
-								RefundIndicator:     seat.RefundIndicator,
-								RawCharacteristics:  strings.Join(seat.RawSeatCharacteristics, ","),
+							total := ""
+							for _, alt := range seat.Total.Alternatives {
+								for _, t := range alt {
+									total += t.Currency + ":" + fmt.Sprintf("%.2f", t.Amount) + ","
+								}
 							}
 
-							err := db.Clauses(clause.OnConflict{
-								Columns: []clause.Column{{Name: "code"}, {Name: "row_number"}},
-								DoUpdates: clause.AssignmentColumns([]string{
-									"cabin", "available", "free_of_charge", "currency", "price", "refund_indicator",
-									"raw_characteristics", "type",
-								}),
-							}).Create(&slot).Error
+							seat := model.Seat{
+								RowNumber:              row.RowNumber,
+								SlotCharacteristics:    strings.Join(seat.SlotCharacteristics, ","),
+								StorefrontSlotCode:     seat.StorefrontSlotCode,
+								Available:              seat.Available,
+								Code:                   seat.Code,
+								Designations:           strings.Join(seat.Designations, ","),
+								Entitled:               seat.Entitled,
+								FeeWaived:              seat.FeeWaived,
+								EntitledRuleID:         seat.EntitledRuleID,
+								FeeWaivedRuleID:        seat.FeeWaivedRuleID,
+								SeatCharacteristics:    strings.Join(seat.SeatCharacteristics, ","),
+								Limitations:            strings.Join(seat.Limitations, ","),
+								RefundIndicator:        seat.RefundIndicator,
+								FreeOfCharge:           seat.FreeOfCharge,
+								Prices:                 prices,
+								Taxes:                  taxes,
+								Total:                  total,
+								OriginallySelected:     seat.OriginallySelected,
+								RawSeatCharacteristics: strings.Join(seat.RawSeatCharacteristics, ","),
+							}
+
+							err := db.Create(&seat).Error
 							if err != nil {
-								logrus.WithError(err).Errorf("Failed to insert or update slot %s.", code)
-							}
-						}
-
-						for _, slot := range row.Slots {
-							code := slot.StorefrontSlotCode
-							slotType := "blank"
-							if code == "" {
-								code = "BLANK"
-							}
-
-							newSlot := model.Slot{
-								Code:                code,
-								RowNumber:           row.RowNumber,
-								Cabin:               cabin.Deck,
-								Available:           slot.Available,
-								FreeOfCharge:        slot.FreeOfCharge,
-								FeeWaived:           slot.FeeWaived,
-								Entitled:            slot.Entitled,
-								OriginallySelected:  slot.OriginallySelected,
-								Type:                slotType,
-								SlotCharacteristics: strings.Join(slot.SlotCharacteristics, ","),
-							}
-
-							err := db.Clauses(clause.OnConflict{
-								Columns: []clause.Column{{Name: "code"}, {Name: "row_number"}},
-								DoUpdates: clause.AssignmentColumns([]string{
-									"available", "free_of_charge", "fee_waived", "entitled", "originally_selected",
-									"type", "slot_characteristics",
-								}),
-							}).Create(&newSlot).Error
-							if err != nil {
-								logrus.WithError(err).Errorf("Failed to insert or update slot %s.", code)
+								logrus.WithError(err).Errorf("Failed to insert")
 							}
 						}
 					}

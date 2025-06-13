@@ -20,7 +20,7 @@ func NewSeatController(s service.SeatService) *SeatController {
 // @Description Returns a list of all seat map data
 // @Tags Seats
 // @Produce json
-// @Success 200 {array} model.Slot
+// @Success 200 {array} model.Seat
 // @Failure 500 {object} map[string]any
 // @Router /seats [get]
 func (c *SeatController) GetAllSeats(ctx *gin.Context) {
