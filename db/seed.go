@@ -82,6 +82,10 @@ type SeatPrice struct {
 }
 
 func SeedFromJSON(path string, db *gorm.DB) error {
+	if err := db.Migrator().DropTable(&model.Seat{}); err != nil {
+		return err
+	}
+
 	if err := db.AutoMigrate(&model.Seat{}); err != nil {
 		return err
 	}
