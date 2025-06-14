@@ -1,11 +1,11 @@
 package model
 
 type Seat struct {
-	RowNumber              int
-	SlotCharacteristics    string
+	RowNumber              int    `gorm:"primaryKey"`
+	SlotCharacteristics    string `gorm:"primaryKey"`
 	StorefrontSlotCode     string
 	Available              bool
-	Code                   string
+	Code                   string `gorm:"primaryKey"`
 	Designations           string
 	Entitled               bool
 	FeeWaived              bool

@@ -9,6 +9,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type SeatMapResponse struct {
@@ -144,7 +145,14 @@ func SeedFromJSON(path string, db *gorm.DB) error {
 								RawSeatCharacteristics: strings.Join(seat.RawSeatCharacteristics, ","),
 							}
 
-							err := db.Create(&seat).Error
+							err := db.Clauses(clause.OnConflict{
+								Columns: []clause.Column{
+									{Name: "row_number"},
+									{Name: "code"},
+									{Name: "slot_characteristics"},
+								},
+								UpdateAll: true,
+							}).Create(&seat).Error
 							if err != nil {
 								logrus.WithError(err).Errorf("Failed to insert")
 							}

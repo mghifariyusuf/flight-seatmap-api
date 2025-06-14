@@ -22,7 +22,7 @@ func NewSeatRepository(db *gorm.DB) SeatRepository {
 
 func (r *seatRepository) GetAll() ([]model.Seat, error) {
 	var seats []model.Seat
-	err := r.db.Find(&seats).Error
+	err := r.db.Find(&seats).Order("id").Error
 	return seats, err
 }
 
